@@ -95,6 +95,13 @@ list_replace([O | OldNext], Old, New, [N | NewNext]) :-
     (O = Old, N = New; O \= Old, N = O),
     (OldNext = [], NewNext = []; list_replace(OldNext, Old, New, NewNext)).
 
+atoms_list_concat(List, Atom) :-
+    atoms_list_concat_(List, '', Atom).
+atoms_list_concat_([], A, A).
+atoms_list_concat_([A | Next], Temp, Atom) :-
+    atom_concat(Temp, A, TempNext),
+    atoms_list_concat_(Next, TempNext, Atom).
+
 get_possible_actions(State, ActionsOut) :-
     state_definition(State, _, [TopAgent | _], SocialPractices, _),
     findall(SuccessfulAction,
@@ -158,11 +165,11 @@ process_single_agent(Agent, StateIn, StateOut) :-
         agent_is_npc(Agent),
         npc_choose_action(RatedActions, ChoosenAction)
     ),
-    action_definition(ChoosenAction, ActionName, Precond, Postcond),
+    action_definition(ChoosenAction, _, Precond, Postcond),
     call(Precond, StateIn, StateTemp1),
     call(Postcond, StateTemp1, StateTemp2),
     general_definition(OldLatestAction, latestaction, _),
-    general_definition(NewLatestAction, latestaction, ActionName),
+    general_definition(NewLatestAction, latestaction, ChoosenAction),
     state_definition(StateTemp2, FN, [AOld | OtherAgents], SP, GN),
     agent_definition(AOld, NM, DS, OldData),
     list_replace(OldData, OldLatestAction, NewLatestAction, NewData),
@@ -174,11 +181,11 @@ process_npcs(State, State) :-
     state_definition(State, _, [Agent | _], _, _),
     agent_is_player(Agent).
 process_npcs(State, StateOut) :-
-    state_definition(State, FN, [Agent | OtherAgents], _, _),
-    agent_is_npc(Agent),
-    process_single_agent(Agent, State, State2),
-    list_append(OtherAgents, Agent, ReorderedAgents),
-    state_definition(State2, FN, _, SP, GT),
+    state_definition(State, FN, [TopAgent | _], _, _),
+    agent_is_npc(TopAgent),
+    process_single_agent(TopAgent, State, State2),
+    state_definition(State2, FN, [UpdatedTopAgent | OtherAgents], SP, GT),
+    list_append(OtherAgents, UpdatedTopAgent, ReorderedAgents),
     state_definition(State3, FN, ReorderedAgents, SP, GT),
     process_npcs(State3, StateOut).
 
@@ -186,11 +193,11 @@ process_players(State, State) :-
     state_definition(State, _, [Agent | _], _, _),
     agent_is_npc(Agent).
 process_players(State, StateOut) :-
-    state_definition(State, FN, [Agent | OtherAgents], _, _),
-    agent_is_player(Agent),
-    process_single_agent(Agent, State, State2),
-    list_append(OtherAgents, Agent, ReorderedAgents),
-    state_definition(State2, FN, _, SP, GT),
+    state_definition(State, FN, [TopAgent | _], _, _),
+    agent_is_player(TopAgent),
+    process_single_agent(TopAgent, State, State2),
+    state_definition(State2, FN, [UpdatedTopAgent | OtherAgents], SP, GT),
+    list_append(OtherAgents, UpdatedTopAgent, ReorderedAgents),
     state_definition(State3, FN, ReorderedAgents, SP, GT),
     process_players(State3, StateOut).
 
