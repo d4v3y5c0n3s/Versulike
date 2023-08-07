@@ -15,6 +15,56 @@ general_definition(general(Name, Data), Name, Data).
 
 state_definition(state(SaveFilename, Agents, SocialPractices, GeneralStuff), SaveFilename, Agents, SocialPractices, GeneralStuff).
 
+list_append([], A, [A]).
+list_append([E | Next], A, Out) :-
+    Out = [E | OutNext],
+    list_append(Next, A, OutNext).
+
+list_has([A | _], A).
+list_has([_ | Next], A) :-
+    list_has(Next, A).
+
+list_replace([O | OldNext], Old, New, [N | NewNext]) :-
+    (O = Old, N = New; O \= Old, N = O),
+    (OldNext = [], NewNext = []; list_replace(OldNext, Old, New, NewNext)).
+
+atoms_list_concat(List, Atom) :-
+    atoms_list_concat_(List, '', Atom).
+atoms_list_concat_([], A, A).
+atoms_list_concat_([A | Next], Temp, Atom) :-
+    atom_concat(Temp, A, TempNext),
+    atoms_list_concat_(Next, TempNext, Atom).
+
+agent_add_desire(ABefore, Desire, AAfter) :-
+    agent_definition(ABefore, Name, OldDesires, Data),
+    list_append(OldDesires, Desire, NewDesires),
+    agent_definition(AAfter, Name, NewDesires, Data).
+agent_add_data(ABefore, DataName, Value, AAfter) :-
+    agent_definition(ABefore, AgentName, Desires, OldData),
+    general_definition(AddedData, DataName, Value),
+    list_append(OldData, AddedData, NewData),
+    agent_definition(AAfter, AgentName, Desires, NewData).
+
+agent_base_preset(Name, Agent) :-
+    general_definition(LatestAction, latestaction, none),
+    agent_definition(Agent, Name, [], [LatestAction]).
+agent_npc_preset(Name, Agent) :-
+    agent_base_preset(Name, PresetAgent),
+    agent_add_data(PresetAgent, npc, true, Agent).
+agent_player_preset(Name, Agent) :-
+    agent_base_preset(Name, A1),
+    agent_add_data(A1, player, true, A2),
+    agent_add_data(A2, playerinput, none, Agent).
+
+world_data_add(Data, ShouldInstance) :-
+    (
+        social_practice_definition(Data, _, _, _), Category = social_practices;
+        agent_definition(Data, _, _, _), Category = characters;
+        general_definition(Data, _, _), Category = general_stuff
+    ),
+    assertz(world_data(Category, Data)),
+    (ShouldInstance = true, assertz(world_data(instances, Data)); ShouldInstance = false).
+
 % adding definitions for a social practice to contain the default "wait" action
 world_data(social_practices, WaitSP) :-
     social_practice_definition(WaitSP, 'Default', [_], [WaitAction]),
@@ -51,18 +101,6 @@ new_game(S) :-
 % given a filename, loads instances from file into current state
 % load_game(state('', )) :-
 
-% world_data/2 editing predicates; useful for rudimentary storywriting;
-% could be build upon to make a more user-friendly editor in the future
-% world_data_add_social_practice/1
-% world_data_add_character/1
-% world_data_add_general/1
-% world_data_add_instance/1
-% world_data_remove_social_practice/1
-% world_data_remove_character/1
-% world_data_remove_general/1
-% world_data_remove_instance/1
-% world_data_clear/0 removes all entries in world_data/2 (not the base
-% categories such as general, instances, characters, etc.)
 % world_data_save/2 saves current world_data/2 to given file
 % world_data_load/2 loads world_data/2 from given file
 
@@ -81,26 +119,6 @@ display_state(S) :-
     nl,
     write('-~-~-~-~-'),
     nl.
-
-list_append([], A, [A]).
-list_append([E | Next], A, Out) :-
-    Out = [E | OutNext],
-    list_append(Next, A, OutNext).
-
-list_has([A | _], A).
-list_has([_ | Next], A) :-
-    list_has(Next, A).
-
-list_replace([O | OldNext], Old, New, [N | NewNext]) :-
-    (O = Old, N = New; O \= Old, N = O),
-    (OldNext = [], NewNext = []; list_replace(OldNext, Old, New, NewNext)).
-
-atoms_list_concat(List, Atom) :-
-    atoms_list_concat_(List, '', Atom).
-atoms_list_concat_([], A, A).
-atoms_list_concat_([A | Next], Temp, Atom) :-
-    atom_concat(Temp, A, TempNext),
-    atoms_list_concat_(Next, TempNext, Atom).
 
 get_possible_actions(State, ActionsOut) :-
     state_definition(State, _, [TopAgent | _], SocialPractices, _),
