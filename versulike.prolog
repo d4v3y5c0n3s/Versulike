@@ -5,7 +5,7 @@
 :- dynamic world_data/2.
 :- multifile world_data/2.
 
-action_definition(action(Name, Preconditions, Postconditions), Name, Preconditions, Postconditions).
+action_definition(action(Name, Precondition, Postcondition), Name, Precondition, Postcondition).
 
 social_practice_definition(social_practice(Name, Roles, Actions), Name, Roles, Actions).
 
@@ -55,6 +55,43 @@ agent_player_preset(Name, Agent) :-
     agent_base_preset(Name, A1),
     agent_add_data(A1, player, true, A2),
     agent_add_data(A2, playerinput, none, Agent).
+
+social_practice_preset(Name, SP) :-
+    social_practice_definition(SP, Name, roles([], []), []).
+
+social_practice_add_role(SP_In, Role, SP_Out) :-
+    social_practice_definition(SP_In, Name, roles(OldPossibleRoles, ActiveRoles), Agents),
+    list_append(OldPossibleRoles, Role, NewPossibleRoles),
+    social_practice_definition(SP_Out, Name, roles(NewPossibleRoles, ActiveRoles), Agents).
+
+social_practice_assign_role(SP_In, Role, Agent, SP_Out) :-
+    social_practice_definition(SP_In, Name, roles(PossibleRoles, OldActiveRoles), Agents),
+    list_has(Agents, Agent),
+    list_has(PossibleRoles, Role),
+    list_append(OldActiveRoles, active_role(Role, Agent), NewActiveRoles),
+    social_practice_definition(SP_Out, Name, roles(PossibleRoles, NewActiveRoles), Agents).
+
+action_condition_preset([], State, State).
+action_condition_preset([Condition | Next], StateIn, StateOut) :-
+    call(Condition, StateIn, StateTemp),
+    action_precondition_preset(Next, StateTemp, StateOut).
+
+social_practice_add_action(SP_In, Action, SP_Out) :-
+    social_practice_definition(SP_In, Name, Roles, OldActions),
+    action_definition(Action, _, _, _),
+    list_append(OldActions, Action, NewActions),
+    social_practice_definition(SP_Out, Name, Roles, NewActions).
+
+action_preset(Name, Action) :-
+    action_definition(Action, Name, action_precondition_preset, action_postcondition_preset).
+
+action_change_precondition(A_In, Precond, A_Out) :-
+    action_definition(A_In, Name, _, Postcond),
+    action_definition(A_Out, Name, Precond, Postcond).
+
+action_change_postcondition(A_In, Postcond, A_Out) :-
+    action_definition(A_In, Name, Precond, _),
+    action_definition(A_Out, Name, Precond, Postcond).
 
 world_data_add(Data, ShouldInstance) :-
     (
