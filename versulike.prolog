@@ -7,6 +7,7 @@
 :- multifile general_data/2.
 :- multifile flavor_text/3.
 :- multifile describe_action/2.
+:- multifile apply_input/3.
 
 action_definition(action(Name, Precondition, Postcondition), Name, Precondition, Postcondition).
 
@@ -17,14 +18,6 @@ agent_definition(agent(Name, Desires, Data), Name, Desires, Data).
 general_definition(general(Name, Data), Name, Data).
 
 state_definition(state(SaveFilename, Agents, SocialPractices, GeneralStuff), SaveFilename, Agents, SocialPractices, GeneralStuff).
-
-% role_definition(role(), )
-
-% emotion_definition(emotion(), )
-
-% belief_definition(belief(), )
-
-% character_arc_definition(character_arc(), )
 
 list_append([], A, [A]).
 list_append([E | Next], A, Out) :-
@@ -358,6 +351,27 @@ process_state_input(loadgame(SaveFileName), load, State) :-
 process_state_input(State, PlayerAction, StateOut) :-
   state_definition(State, _, Agents, _, _),
   process_agents(Agents, State, PlayerAction, StateOut).
+process_state_input(loadgame(SaveFileName), input_new, receive_input(SaveFileName)).
+process_state_input(savegame(State), input_new, receive_input(SaveFileName)) :-
+  state_definition(State, SaveFileName, _, _, _).
+
+wants_input(input_new, receive_input(_)).
+
+get_user_input(UserInput) :-
+  repeat,
+  nl,
+  write('Please, type something in:'),
+  nl,
+  read(UserInput),
+  nonvar(UserInput),
+  nl,
+  write('Thanks!'),
+  nl.
+
+apply_input(loadgame(_), UserInput, loadgame(UserInput)).
+apply_input(savegame(State), UserInput, savegame(NewState)) :-
+  state_definition(State, _, Agents, SocialPractices, GeneralStuff),
+  state_definition(NewState, UserInput, Agents, SocialPractices, GeneralStuff).
 
 game_loop(exit).
 game_loop(S) :-
@@ -366,7 +380,13 @@ game_loop(S) :-
   read(Input),
   nonvar(Input),
   process_state_input(S, Input, S2),
-  game_loop(S2).
+  (
+    wants_input(Input, S2),
+    get_user_input(UserInput),
+    apply_input(S, UserInput, SFinal),
+    game_loop(SFinal);
+    \+(wants_input(Input, S2)), game_loop(S2)
+  ).
 
 play :-
     State = mainmenu,
