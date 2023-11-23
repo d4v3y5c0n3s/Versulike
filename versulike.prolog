@@ -21,12 +21,12 @@ state_definition(state(SaveFilename, Agents, SocialPractices, GeneralStuff), Sav
 
 list_append([], A, [A]).
 list_append([E | Next], A, Out) :-
-    Out = [E | OutNext],
-    list_append(Next, A, OutNext).
+    Out = [E | OutNext],
+    list_append(Next, A, OutNext).
 
 list_has([A | _], A).
 list_has([_ | Next], A) :-
-    list_has(Next, A).
+    list_has(Next, A).
 
 list_replace([O | OldNext], Old, New, [N | NewNext]) :-
     (O = Old, N = New; O \= Old, N = O),
@@ -164,7 +164,7 @@ show_flavor_text(State, Purpose, Text) :-
 
 new_game(S) :-
   default_save_file_name(SaveFileName),
-  state_definition(S, SaveFileName, Agents, SocialPractices, GeneralStuff),
+  state_definition(S, SaveFileName, Agents, SocialPractices, GeneralStuff),
   findall(A, (agent_data(A, true), agent_definition(A, _, _, _)), Agents),
   findall(SP, (social_practice_data(SP, true), social_practice_definition(SP, _, _, _)), SocialPractices),
   findall(G, (general_data(G, true), general_definition(G, _, _)), GeneralStuff).
@@ -219,20 +219,20 @@ display_state(S) :-
   nl,
   nl,
   nl,
-  write('-~-~-~-~-'),
-  nl,
+  write('-~-~-~-~-'),
+  nl,
   show_flavor_text(S, default, D1),
   write(D1),
   nl,
-  write('   -~-   '),
-  nl,
-  write('Your options are:'),
-  nl,
+  write('   -~-   '),
+  nl,
+  write('Your options are:'),
+  nl,
   show_flavor_text(S, options, D2),
   write(D2),
   nl,
-  write('-~-~-~-~-'),
-  nl.
+  write('-~-~-~-~-'),
+  nl.
 
 perform_action(Action, StateIn, StateOut) :-
   action_definition(Action, _, PreConds, PostConds),
@@ -240,7 +240,7 @@ perform_action(Action, StateIn, StateOut) :-
   call(PostConds, StateTemp, StateOut).
 
 get_possible_actions(State, Agent, ActionsOut) :-
-  state_definition(State, _, AgentList, SocialPractices, _),
+  state_definition(State, _, AgentList, SocialPractices, _),
   list_has(AgentList, Agent),
   findall(SuccessfulAction,
     (
@@ -270,36 +270,36 @@ rate_single_action(Action, Agent, State, RatedAction) :-
   sum_desire_score(Desires, StateAfter, DesiresScore),
   RatedAction = -((-DesiresScore), Action).
 rate_actions(UnRatedActions, Agent, State, RatedActions) :-
-  state_definition(State, _, _, _, _),
-  findall(RA, (list_has(UnRatedActions, A), rate_single_action(A, Agent, State, RA)), RatedActions).
+  state_definition(State, _, _, _, _),
+  findall(RA, (list_has(UnRatedActions, A), rate_single_action(A, Agent, State, RA)), RatedActions).
 
 agent_is_player(A) :-
-    agent_definition(A, _, _, Data),
-    general_definition(IsPlayer, player, true),
-    list_has(Data, IsPlayer),
-    general_definition(PlayerInput, playerinput, _),
-    list_has(Data, PlayerInput).
+    agent_definition(A, _, _, Data),
+    general_definition(IsPlayer, player, true),
+    list_has(Data, IsPlayer),
+    general_definition(PlayerInput, playerinput, _),
+    list_has(Data, PlayerInput).
 
 agent_is_npc(A) :-
-    agent_definition(A, _, _, Data),
-    general_definition(IsNPC, npc, true),
-    list_has(Data, IsNPC).
+    agent_definition(A, _, _, Data),
+    general_definition(IsNPC, npc, true),
+    list_has(Data, IsNPC).
 
 npc_choose_action(RatedActions, ActionOut) :-
-    keysort(RatedActions, RatedSortedActions),
-    RatedSortedActions = [-(_, ActionOut) | _].
+    keysort(RatedActions, RatedSortedActions),
+    RatedSortedActions = [-(_, ActionOut) | _].
 
 % this is the most important agent-related predicate, makes the agent choose & do an action
 process_single_agent(Agent, StateIn, StateOut) :-
-  agent_definition(Agent, NM, DS, OldData),
-  get_possible_actions(StateIn, Agent, Actions),
-  rate_actions(Actions, Agent, StateIn, RatedActions),
-  (
-    agent_is_player(Agent),
+  agent_definition(Agent, NM, DS, OldData),
+  get_possible_actions(StateIn, Agent, Actions),
+  rate_actions(Actions, Agent, StateIn, RatedActions),
+  (
+    agent_is_player(Agent),
     list_has(Actions, ChoosenAction);
-    agent_is_npc(Agent),
-    npc_choose_action(RatedActions, ChoosenAction)
-  ),
+    agent_is_npc(Agent),
+    npc_choose_action(RatedActions, ChoosenAction)
+  ),
   perform_action(ChoosenAction, StateIn, StateTemp),
   general_definition(OldLatestAction, latestaction, _),
   general_definition(NewLatestAction, latestaction, ChoosenAction),
@@ -336,9 +336,9 @@ process_agents_after_player([Agent | Next], StateIn, PlayerAction, StateOut) :-
 
 process_state_input(mainmenu, exit, exit).
 process_state_input(mainmenu, newgame, State) :-
-  new_game(State).
+  new_game(State).
 process_state_input(State, mainmenu, mainmenu) :-
-  state_definition(State, _, _, _, _).
+  state_definition(State, _, _, _, _).
 process_state_input(State, savegame, savegame(State)) :-
   state_definition(State, _, _, _, _).
 process_state_input(savegame(State), save, State) :-
@@ -349,7 +349,7 @@ process_state_input(loadgame(SaveFileName), load, State) :-
   state_definition(State, SaveFileName, _, _, _),
   load_game(State).
 process_state_input(State, PlayerAction, StateOut) :-
-  state_definition(State, _, Agents, _, _),
+  state_definition(State, _, Agents, _, _),
   process_agents(Agents, State, PlayerAction, StateOut).
 process_state_input(loadgame(SaveFileName), input_new, receive_input(SaveFileName)).
 process_state_input(savegame(State), input_new, receive_input(SaveFileName)) :-
@@ -362,7 +362,7 @@ get_user_input(UserInput) :-
   nl,
   write('Please, type something in:'),
   nl,
-  read(UserInput),
+  read(UserInput),
   nonvar(UserInput),
   nl,
   write('Thanks!'),
@@ -375,11 +375,11 @@ apply_input(savegame(State), UserInput, savegame(NewState)) :-
 
 game_loop(exit).
 game_loop(S) :-
-  display_state(S),
+  display_state(S),
   repeat,
-  read(Input),
+  read(Input),
   nonvar(Input),
-  process_state_input(S, Input, S2),
+  process_state_input(S, Input, S2),
   (
     wants_input(Input, S2),
     get_user_input(UserInput),
@@ -389,5 +389,5 @@ game_loop(S) :-
   ).
 
 play :-
-    State = mainmenu,
-    game_loop(State).
+    State = mainmenu,
+    game_loop(State).
